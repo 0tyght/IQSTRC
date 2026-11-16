@@ -17,6 +17,25 @@ $applicant_level = normalizeApplicantLevel(
     $applicant_type,
     $_POST['applicant_level'] ?? ''
 );
+$faculty_error = false;
+$submitted_faculty = $_POST['faculty_id'] ?? '';
+if ($applicant_type === 'university' && $submitted_faculty !== '') {
+    $faculty_value = filter_var($submitted_faculty, FILTER_VALIDATE_INT, array('options' => array('min_range' => 1)));
+    if ($faculty_value === false) {
+        $faculty_error = true;
+    } else {
+        $faculty_stmt = $query->connect->prepare('SELECT university_id FROM faculty WHERE faculty_id = ? LIMIT 1');
+        $faculty_stmt->bind_param('i', $faculty_value);
+        $faculty_stmt->execute();
+        $faculty_row = $faculty_stmt->get_result()->fetch_assoc();
+        if (!$faculty_row) {
+            $faculty_error = true;
+        } else {
+            $faculty_id = (int)$faculty_value;
+            $university_id = (int)$faculty_row['university_id'];
+        }
+    }
+}
 
 $birthday = $_POST['birthday'] ?? '';
 $gender = $_POST['gender'] ?? '';
@@ -53,10 +72,18 @@ if (
     echo '<script>$("#applicant_level").removeClass("is-invalid");</script>';
 }
 
+if ($faculty_error) {
+    echo '<script>$("#faculty_id").addClass("is-invalid");</script>';
+    echo 'คณะที่เลือกไม่ถูกต้อง กรุณาเลือกคณะจากรายการ';
+} else {
+    echo '<script>$("#faculty_id").removeClass("is-invalid");</script>';
+}
+
 if (
     $username != '' &&
     $password != '' &&
     $applicant_type != '' &&
+    !$faculty_error &&
     ($applicant_type == 'general' || $applicant_level != '')
 ) {
     $username_safe = mysqli_real_escape_string($query->connect, $username);

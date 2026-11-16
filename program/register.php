@@ -3,6 +3,12 @@ include('api/app.php');
 include_once('php/applicant_options.php');
 
 $query = new DBControl();
+$faculty_options = $query->queryDB_to_array(
+	' SELECT f.faculty_id, f.faculty_name, u.university_name
+	  FROM faculty f
+	  LEFT JOIN university u ON u.university_id = f.university_id
+	  ORDER BY u.university_name, f.faculty_name'
+);
 
 $user_id = $_COOKIE["user_id"] ?? '';
 
@@ -107,6 +113,23 @@ $applicant_levels = array(
 								<option value="">
 									== เลือกระดับ ==
 								</option>
+							</select>
+						</div>
+					</div>
+					<div
+						class="form-group"
+						id="faculty_wrap"
+						style="display:none">
+						<label class="form-label" for="faculty_id">
+							คณะ (ถ้ามี)
+						</label>
+						<div class="input-wrapper">
+							<i class="fa fa-university input-icon"></i>
+							<select
+								class="register-input register-select"
+								name="faculty_id"
+								id="faculty_id">
+								<option value="">== เลือกคณะ ==</option>
 							</select>
 						</div>
 					</div>
@@ -287,6 +310,20 @@ $applicant_levels = array(
 										JSON_UNESCAPED_UNICODE
 									);
 									?>;
+			var facultyOptions = <?php
+										echo json_encode(
+										$faculty_options,
+										JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+									);
+										?>;
+
+			$.each(facultyOptions, function(_, faculty) {
+				var university = faculty.university_name || 'มหาวิทยาลัยไม่ระบุ';
+				$('<option>', {
+					value: faculty.faculty_id,
+					text: faculty.faculty_name + ' - ' + university
+				}).appendTo('#faculty_id');
+			});
 
 			function renderApplicantLevel() {
 				var type = $('#applicant_type').val();
@@ -304,6 +341,12 @@ $applicant_levels = array(
 						'</option>';
 				});
 				$('#applicant_level').html(html);
+				if (type === 'university') {
+					$('#faculty_wrap').show();
+				} else {
+					$('#faculty_wrap').hide();
+					$('#faculty_id').val('').removeClass('is-invalid');
+				}
 				if (hasLevel) {
 					$('#applicant_level_wrap').show();
 				} else {

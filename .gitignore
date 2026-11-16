@@ -13,6 +13,8 @@ DB/*/
 *.sql
 !database/
 !database/*.sql
+!database/migrations/
+!database/migrations/*.sql
 db_test.php
 
 # Environment/secret files

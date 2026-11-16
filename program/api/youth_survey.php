@@ -15,20 +15,22 @@ try {
     $db=(new DBControl())->connect;
     $action=$data['action']??'submit';
     if ($action!=='submit') throw new InvalidArgumentException('คำสั่งไม่ถูกต้อง');
-    foreach (['assent','guardian','eligible'] as $field) if (($data[$field]??null)!==true) throw new InvalidArgumentException('กรุณาตรวจคุณสมบัติและความยินยอมก่อนเริ่ม');
     $area=$data['area']??'';
     if (!is_string($area) || !isset(youth_areas()[$area])) throw new InvalidArgumentException('กรุณาเลือกพื้นที่ที่กำหนด');
+    $required=$area==='public_health'?['assent','eligible']:['assent','guardian','eligible'];
+    foreach ($required as $field) if (($data[$field]??null)!==true) throw new InvalidArgumentException('กรุณาตรวจคุณสมบัติและความยินยอมก่อนเริ่ม');
     $submission=$data['submission']??'';
     if (!is_string($submission) || !isset($_SESSION['submissions'][$submission])) reply(403,['error'=>'รหัสการส่งไม่ถูกต้อง กรุณาเปิดหน้าใหม่']);
     $receipt=$_SESSION['submissions'][$submission];
     $receiptHash=hash('sha256',$receipt); $submissionHash=hash('sha256',$submission);
     $answerData=youth_record_answers($data['answers']??null,$area);
     $answers=json_encode($answerData,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
-    $version=youth_schema($area)['version']; $consent='2026-11-11-v4-required';
+    $version=youth_schema($area)['version']; $consent=$area==='public_health'?'2026-11-16-public-health-v1':'2026-11-11-v4-required';
+    $guardianConfirmed=$area==='public_health'?0:1;
     $respondentKey=youth_respondent_key($db);
     $db->begin_transaction();
-    $stmt=$db->prepare('INSERT INTO youth_survey_responses (receipt_hash,submission_hash,schema_version,consent_version,guardian_confirmed,answers,area_code,respondent_key) VALUES (?,?,?,?,1,?,?,?) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)');
-    $stmt->bind_param('sssssss',$receiptHash,$submissionHash,$version,$consent,$answers,$area,$respondentKey); $stmt->execute();
+    $stmt=$db->prepare('INSERT INTO youth_survey_responses (receipt_hash,submission_hash,schema_version,consent_version,guardian_confirmed,answers,area_code,respondent_key) VALUES (?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)');
+    $stmt->bind_param('ssssisss',$receiptHash,$submissionHash,$version,$consent,$guardianConfirmed,$answers,$area,$respondentKey); $stmt->execute();
     $responseId=$db->insert_id;
     // Reuse the committed original snapshot on retries; never overwrite prior answers.
     $saved=youth_sql($db,'SELECT area_code,schema_version,answers FROM youth_survey_responses WHERE id=? FOR UPDATE','i',[$responseId])->get_result()->fetch_assoc();

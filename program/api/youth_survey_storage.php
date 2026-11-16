@@ -7,7 +7,7 @@ function youth_sql($db,$sql,$types='',$params=[]) {
 }
 // Preserve old versions: v2 Nam Phai used free text; v1-v3 Thung Saliam had original labels.
 function youth_historical_schema($version,$area) {
-    $schema=youth_schema($area);
+    $schema=youth_schema($area,$area==='public_health' && $version==='2026-11-16-public-health-v1');
     $schema['version']=$version;
     $original=json_decode(file_get_contents(__DIR__.'/youth_survey_schema.json'),true,512,JSON_THROW_ON_ERROR);
     foreach($schema['questions'] as &$q) {

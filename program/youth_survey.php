@@ -20,11 +20,11 @@ if (!is_string($area) || !isset($areas[$area])) {
 <body class="youth-page">
     <main class="youth-wrap"><a class="back" href="home.php">‹ กลับหน้ากิจกรรม</a>
         <header class="youth-header"><span class="badge">กิจกรรม · ร่วมสร้างชุมชนปกป้องเด็ก</span>
-            <h1>เลือกพื้นที่ของคุณ</h1>
-            <p>เลือกพื้นที่ที่คุณอาศัยอยู่ ก่อนเข้าสู่แบบสอบถามเด็กและเยาวชน</p>
+            <h1>เลือกกลุ่มแบบสอบถาม</h1>
+            <p>เลือกพื้นที่หรือคณะของคุณก่อนเข้าสู่แบบสอบถาม</p>
         </header>
         <section class="panel area-picker">
-            <h2>คุณอาศัยอยู่ในพื้นที่ใด?</h2>
+            <h2>เลือกพื้นที่หรือคณะ</h2>
             <?php foreach ($areas as $key=>$label): ?><a class="area-card"
                 href="youth_survey.php?area=<?=htmlspecialchars($key,ENT_QUOTES,'UTF-8')?>"><span><?=htmlspecialchars($label,ENT_QUOTES,'UTF-8')?></span><span
                     aria-hidden="true">›</span></a><?php endforeach; ?>
@@ -63,7 +63,7 @@ function esc($v){return htmlspecialchars($v,ENT_QUOTES,'UTF-8');}
         <a class="back" href="home.php">‹ กลับหน้ากิจกรรม</a>
         <header class="youth-header"><span class="badge">กิจกรรม · ร่วมสร้างชุมชนปกป้องเด็ก</span>
             <h1>แบบสอบถามเด็กและเยาวชน</h1>
-            <p>อายุ 10–18 ปี · 30 ข้อ · 5 ส่วน · ประมาณ 10–20 นาที</p>
+            <p>อายุ <?=$area === 'public_health' ? '18–24' : '10–18'?> ปี · <?=count($schema['questions'])?> ข้อ · <?=count($schema['sections'])?> ส่วน · ประมาณ 10–20 นาที</p>
         </header>
         <div class="selected-area"><span>พื้นที่: <?=esc($areas[$area])?></span> <a
                 href="youth_survey.php">เปลี่ยนพื้นที่</a></div>
@@ -89,6 +89,7 @@ function esc($v){return htmlspecialchars($v,ENT_QUOTES,'UTF-8');}
             <details>
                 <summary>อ่านข้อมูลโครงการและคำชี้แจงจากเอกสารฉบับเต็ม</summary>
                 <div class="source-info">
+                    <?php if ($area === 'public_health'): ?><p>เอกสารต้นฉบับด้านล่างระบุกลุ่มเด็กและเยาวชนในพื้นที่เดิม กรุณาตรวจสอบเอกสารสำหรับกลุ่มคณะสาธารณสุขศาสตร์กับผู้วิจัยก่อนใช้เก็บข้อมูลจริง</p><?php endif; ?>
                     <?php foreach(json_decode(file_get_contents(__DIR__.'/api/youth_survey_information.json'),true) as $text): if(trim($text)==='')continue; ?>
                     <p><?=esc($text)?></p><?php endforeach; ?>
                 </div>
@@ -105,15 +106,14 @@ function esc($v){return htmlspecialchars($v,ENT_QUOTES,'UTF-8');}
                     ระหว่างรอผู้วิจัยยืนยัน</small>
             </div>
             <h3>ตรวจความพร้อมและความยินยอม</h3>
-            <label class="choice"><input type="checkbox" id="eligible"> <span>ฉันอายุ 10–18 ปี
-                    อาศัยใน<?=esc($areas[$area])?> และอ่านเข้าใจคำชี้แจงนี้</span></label>
-            <label class="choice"><input type="checkbox" id="guardian">
+            <label class="choice"><input type="checkbox" id="eligible"> <span><?php if ($area === 'public_health'): ?>ฉันอายุ 18–24 ปี และศึกษาอยู่ใน<?=esc($areas[$area])?><?php else: ?>ฉันอายุ 10–18 ปี อาศัยใน<?=esc($areas[$area])?><?php endif; ?> และอ่านเข้าใจคำชี้แจงนี้</span></label>
+            <?php if ($area !== 'public_health'): ?><label class="choice"><input type="checkbox" id="guardian">
                 <span>ฉันได้รับความยินยอมจากผู้ปกครองหรือผู้แทนโดยชอบธรรมแล้ว ตามกระบวนการของโครงการ
-                    (ไม่ต้องกรอกชื่อหรือแนบเอกสารในหน้านี้)</span></label>
+                    (ไม่ต้องกรอกชื่อหรือแนบเอกสารในหน้านี้)</span></label><?php endif; ?>
             <label class="choice"><input type="checkbox" id="assent"> <span>ฉันเข้าใจว่าต้องตอบคำถามที่แสดงให้ครบเพื่อไปต่อ หรือหยุดได้
                     และสมัครใจตอบแบบสอบถาม</span></label>
-            <p><small>หากยังไม่ได้รับความยินยอม ให้หยุดไว้ก่อนและติดต่อผู้วิจัย การทำเครื่องหมายนี้เป็นเพียงการยืนยัน
-                    ไม่แทนกระบวนการขอความยินยอมของโครงการ</small></p>
+            <?php if ($area !== 'public_health'): ?><p><small>หากยังไม่ได้รับความยินยอม ให้หยุดไว้ก่อนและติดต่อผู้วิจัย การทำเครื่องหมายนี้เป็นเพียงการยืนยัน
+                    ไม่แทนกระบวนการขอความยินยอมของโครงการ</small></p><?php endif; ?>
             <button type="button" id="start">เริ่มตอบแบบสอบถาม</button> <a href="home.php"
                 class="secondary-link">ยังไม่เข้าร่วม</a>
         </section>

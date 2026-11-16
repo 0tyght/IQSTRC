@@ -17,7 +17,7 @@ function yx_sheet($zip,$name,$rows,$widths=[]){
         return $path;
     }catch(Throwable $e){if(is_resource($f))fclose($f);unlink($path);throw $e;}
 }
-function youth_export_xlsx($db,$join,$where,$types,$params,$area,$status){
+function youth_export_xlsx($db,$join,$where,$types,$params,$area,$status,$group=''){
     $tmp=tempnam(sys_get_temp_dir(),'trc-export-');$sheetFiles=[];$zip=new ZipArchive();
     try {
         $db->begin_transaction(MYSQLI_TRANS_START_READ_ONLY);
@@ -32,9 +32,9 @@ function youth_export_xlsx($db,$join,$where,$types,$params,$area,$status){
         $db->commit();
         if($zip->open($tmp,ZipArchive::OVERWRITE)!==true)throw new RuntimeException('Cannot create Excel file');
         $codes=[];foreach([5,9,7,5,4] as $s=>$count)foreach(range(1,$count) as $q)$codes[]='s'.($s+1).'q'.$q;
-        $label=function($a){if(!$a)return 'ไม่พบข้อมูล';if($a['status']==='skipped')return 'ไม่ได้ตอบ';if($a['status']==='not_applicable')return 'ไม่เข้าเงื่อนไข';return $a['answer_type']==='text'?$a['text_value']:implode(' | ',$a['labels']);};
+        $label=function($a){if(!$a || $a['status']!=='answered')return '-';$value=$a['answer_type']==='text'?$a['text_value']:implode(' | ',$a['labels']);return $value===null || $value===''?'-':$value;};
         $questions=[];
-        foreach(youth_schema($area?:'thung_saliam')['questions'] as $q)$questions[$q['id']]=$q['text'];
+        foreach(youth_schema($area?:'thung_saliam',true)['questions'] as $q)$questions[$q['id']]=$q['text'];
         // Prefer question wording saved with the exported response version.
         if($responses)foreach($answers[$responses[0]['id']]??[] as $code=>$a)$questions[$code]=$a['question_text'];
         $wide=(function()use($responses,$answers,$codes,$label,$questions){
@@ -51,7 +51,7 @@ function youth_export_xlsx($db,$join,$where,$types,$params,$area,$status){
             }
         })();
         $long=(function()use($responses,$answers,$label){yield ['ชุดคำตอบ','วันที่ส่ง (เวลาไทย)','รหัสพื้นที่','ตำบล','อำเภอ','จังหวัด','รุ่นแบบสอบถาม','สถานะชุดคำตอบ','ส่วนที่','ชื่อส่วน','รหัสข้อ','ข้อที่','คำถาม','ประเภท','สถานะคำตอบ','รหัสตัวเลือก','คำตอบ'];foreach($responses as $r)foreach($answers[$r['id']]??[] as $a)yield [$r['id'],$r['created_at'],$r['code'],$r['subdistrict'],$r['district'],$r['province'],$r['version'],$r['withdrawn']?'ไม่นำไปวิเคราะห์':'ใช้วิเคราะห์',$a['section_number'],$a['section_title'],$a['question_code'],$a['question_number'],$a['question_text'],$a['answer_type'],$a['status'],implode(' | ',$a['codes']),$label($a)];})();
-        $meta=[['รายการ','ค่าที่ใช้ส่งออก'],['พื้นที่',$area?:'ทุกพื้นที่'],['สถานะ',['active'=>'ใช้วิเคราะห์','withdrawn'=>'ไม่นำไปวิเคราะห์ / ข้อมูลทดสอบ','all'=>'ทั้งหมด'][$status]],['จำนวนชุดคำตอบ',count($responses)],['ส่งออกเมื่อ (เวลาไทย)',date('Y-m-d H:i:s')],['ขอบเขต','เฉพาะชุดล่าสุดต่อผู้ใช้และตำบล ภายใต้ตัวกรองทุกหน้า; ข้อมูลเก่าที่ไม่เชื่อมผู้ใช้คงแยกชุด'],['หมายเหตุ','ไม่ได้ตอบและไม่เข้าเงื่อนไขแยกจากคำตอบจริง; หลายตัวเลือกคั่นด้วย |']];
+        $meta=[['รายการ','ค่าที่ใช้ส่งออก'],['พื้นที่',$area?:'ทุกพื้นที่'],['หมู่บ้าน / สาขาวิชา',$group?:'ทั้งหมด'],['สถานะ',['active'=>'ใช้วิเคราะห์','withdrawn'=>'ไม่นำไปวิเคราะห์ / ข้อมูลทดสอบ','all'=>'ทั้งหมด'][$status]],['จำนวนชุดคำตอบ',count($responses)],['ส่งออกเมื่อ (เวลาไทย)',date('Y-m-d H:i:s')],['ขอบเขต','เฉพาะชุดล่าสุดต่อผู้ใช้และพื้นที่ ภายใต้ตัวกรองทุกหน้า; ข้อมูลเก่าที่ไม่เชื่อมผู้ใช้คงแยกชุด'],['หมายเหตุ','- หมายถึงไม่มีคำตอบ; สถานะคำตอบระบุในแผ่นรายละเอียด; หลายตัวเลือกคั่นด้วย |']];
         $sheetFiles[]=yx_sheet($zip,'xl/worksheets/sheet1.xml',$wide,array_merge(array_fill(0,30,42),[25]));
         $sheetFiles[]=yx_sheet($zip,'xl/worksheets/sheet2.xml',$long,[14,23,20,20,20,20,25,24,10,40,12,10,70,14,20,20,60]);
         $sheetFiles[]=yx_sheet($zip,'xl/worksheets/sheet3.xml',$meta,[30,90]);

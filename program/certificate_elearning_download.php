@@ -1,5 +1,6 @@
 <?php
 require_once('admin/indyEngine/dbControl.php');
+require_once __DIR__ . '/php/certificate_name.php';
 
 $query = new DBControl();
 
@@ -13,7 +14,8 @@ $user = $query->queryDB_to_row(
 	'SELECT * FROM user WHERE user_id=' . intval($user_id)
 );
 
-$user_name = $user['user_name'] ?? 'ไม่พบชื่อ';
+$user_name = certificateFullName($_POST['first_name'] ?? '', $_POST['last_name'] ?? '');
+if (!$user_name) { http_response_code(400); exit('กรุณากรอกชื่อและนามสกุล'); }
 
 $date_text = 'ให้ไว้ ณ วันที่ ' . date("d") . ' ' . getThaiMonth(date("m")) . ' ' . (date("Y") + 543);
 
@@ -40,6 +42,7 @@ if (!file_exists($font)) {
 $image_width = imagesx($image);
 
 $name_size = 34;
+$name_size = certificateFitName($font, $user_name, $name_size, $image_width * 0.8);
 $name_y = 720;
 
 $bbox = imagettfbbox($name_size, 0, $font, $user_name);

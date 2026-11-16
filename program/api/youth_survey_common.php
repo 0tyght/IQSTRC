@@ -10,11 +10,30 @@ function youth_session() {
     header('X-Frame-Options: SAMEORIGIN');
 }
 function youth_areas() {
-    return ['thung_saliam'=>'ต.ทุ่งเสลี่ยม อ.ทุ่งเสลี่ยม จ.สุโขทัย', 'nam_phai'=>'ต.น้ำไผ่ อ.น้ำปาด จ.อุตรดิตถ์'];
+    return ['thung_saliam'=>'ต.ทุ่งเสลี่ยม อ.ทุ่งเสลี่ยม จ.สุโขทัย', 'nam_phai'=>'ต.น้ำไผ่ อ.น้ำปาด จ.อุตรดิตถ์', 'public_health'=>'คณะสาธารณสุขศาสตร์'];
 }
-function youth_schema($area = 'thung_saliam') {
+function youth_schema($area = 'thung_saliam', $historicalPublicHealth = false) {
     $schema = json_decode(file_get_contents(__DIR__.'/youth_survey_schema.json'),true,512,JSON_THROW_ON_ERROR);
     $schema['version'] = '2026-10-28-v5';
+    if ($area === 'public_health') {
+        $schema['version'] = '2026-11-16-public-health-v1';
+        foreach ($schema['questions'] as &$question) {
+            if ($question['id'] === 's1q2') $question['options'] = array_map(function ($age) { return $age . ' ปี'; }, range(18, 24));
+            if ($question['id'] === 's1q4') array_splice($question['options'], count($question['options']) - 1, 0, ['มหาวิทยาลัย']);
+            if ($question['id'] === 's1q5') {
+                $question['text'] = 'ปัจจุบันคุณเรียนอยู่สาขาใด';
+                $question['type'] = 'single';
+                $question['options'] = ['สาขาวิชาอนามัยชุมชน', 'สาขาวิชาการดูแลและการจัดการสุขภาพผู้สูงอายุ', 'สาขาวิชาอนามัยสิ่งแวดล้อม', 'สาขาวิชาอาชีวอนามัยและความปลอดภัย'];
+            }
+            if (in_array($question['id'], ['s2q2', 's2q5'], true)) array_splice($question['options'], 5, 0, ['19–24 ปี']);
+        }
+        unset($question);
+        if (!$historicalPublicHealth) {
+            $schema['version'] = '2026-11-16-public-health-v2';
+            $schema['sections'] = array_slice($schema['sections'], 0, 4);
+            $schema['questions'] = array_values(array_filter($schema['questions'], function ($q) { return $q['section'] < 5; }));
+        }
+    }
     if ($area === 'thung_saliam') {
         foreach ($schema['questions'] as &$question) {
             if ($question['id'] === 's1q5') {

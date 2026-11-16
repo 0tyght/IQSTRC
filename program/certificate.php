@@ -12,7 +12,7 @@ $user = $query->queryDB_to_row(
 	'SELECT * FROM user WHERE user_id=' . intval($user_id)
 );
 
-$user_name = $user['user_name'] ?? 'ไม่พบชื่อ';
+$user_name = trim(($user['user_name'] ?? '') . ' ' . ($user['user_lastname'] ?? ''));
 
 $date_text = 'ให้ไว้ ณ วันที่ ' . date("d") . ' ' . getThaiMonth(date("m")) . ' ' . (date("Y") + 543);
 
@@ -119,7 +119,7 @@ function getThaiMonth($month)
 					>
 
 					<div class="certificate_name">
-						<?= $user_name ?>
+						<?= htmlspecialchars($user_name, ENT_QUOTES, 'UTF-8') ?>
 					</div>
 
 					<div class="certificate_date">
@@ -128,16 +128,7 @@ function getThaiMonth($month)
 
 				</div>
 
-				<div class="download_bt">
-
-					<a href="certificate_download.php">
-						<button class="bt_big bg-dark">
-							<i class="fa fa-download pr-2"></i>
-							ดาวน์โหลดเกียรติบัตร
-						</button>
-					</a>
-
-				</div>
+				<?php $certificateDownload = 'certificate_download.php'; include __DIR__ . '/php/certificate_form.php'; ?>
 
 			</div>
 

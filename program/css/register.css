@@ -42,6 +42,24 @@
     row-gap: 0;
 }
 
+.register-grid .form-group,
+.register-grid .input-wrapper {
+    min-width: 0;
+    width: 100%;
+}
+
+.register-grid input[type="date"] {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    -webkit-appearance: none;
+}
+
+.register-select:disabled {
+    color: #6b7475;
+    opacity: 1;
+}
+
 .form-group-full {
     grid-column: 1 / -1;
 }

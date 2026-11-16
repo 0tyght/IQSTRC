@@ -3,12 +3,8 @@ include('api/app.php');
 include_once('php/applicant_options.php');
 
 $query = new DBControl();
-$faculty_options = $query->queryDB_to_array(
-	' SELECT f.faculty_id, f.faculty_name, u.university_name
-	  FROM faculty f
-	  LEFT JOIN university u ON u.university_id = f.university_id
-	  ORDER BY u.university_name, f.faculty_name'
-);
+$university_options = $query->queryDB_to_array('SELECT university_id, university_name FROM university ORDER BY university_name');
+$faculty_options = $query->queryDB_to_array('SELECT faculty_id, faculty_name, university_id FROM faculty ORDER BY faculty_name');
 
 $user_id = $_COOKIE["user_id"] ?? '';
 
@@ -116,6 +112,18 @@ $applicant_levels = array(
 							</select>
 						</div>
 					</div>
+					<div class="form-group" id="university_wrap" style="display:none">
+						<label class="form-label" for="university_id">มหาวิทยาลัย (ถ้ามี)</label>
+						<div class="input-wrapper">
+							<i class="fa fa-university input-icon"></i>
+							<select class="register-input register-select" name="university_id" id="university_id">
+								<option value="">เลือกมหาวิทยาลัย</option>
+								<?php foreach ($university_options as $university): ?>
+								<option value="<?= (int)$university['university_id'] ?>"><?= htmlspecialchars($university['university_name'], ENT_QUOTES, 'UTF-8') ?></option>
+								<?php endforeach; ?>
+							</select>
+						</div>
+					</div>
 					<div
 						class="form-group"
 						id="faculty_wrap"
@@ -128,8 +136,8 @@ $applicant_levels = array(
 							<select
 								class="register-input register-select"
 								name="faculty_id"
-								id="faculty_id">
-								<option value="">== เลือกคณะ ==</option>
+								id="faculty_id" disabled>
+								<option value="">เลือกมหาวิทยาลัยก่อน</option>
 							</select>
 						</div>
 					</div>
@@ -317,13 +325,19 @@ $applicant_levels = array(
 									);
 										?>;
 
-			$.each(facultyOptions, function(_, faculty) {
-				var university = faculty.university_name || 'มหาวิทยาลัยไม่ระบุ';
-				$('<option>', {
-					value: faculty.faculty_id,
-					text: faculty.faculty_name + ' - ' + university
-				}).appendTo('#faculty_id');
-			});
+			function renderFaculty() {
+				var university = $('#university_id').val();
+				var faculty = $('#faculty_id').empty().prop('disabled', !university).removeClass('is-invalid');
+				$('<option>', {value: '', text: university ? 'เลือกคณะ (ถ้ามี)' : 'เลือกมหาวิทยาลัยก่อน'}).appendTo(faculty);
+				var count = 0;
+				$.each(facultyOptions, function(_, item) {
+					if (String(item.university_id) !== university) return;
+					$('<option>', {value: item.faculty_id, text: item.faculty_name}).appendTo(faculty);
+					count++;
+				});
+				if (university && !count) faculty.find('option:first').text('ไม่มีคณะในรายการ');
+			}
+			$('#university_id').on('change', renderFaculty);
 
 			function renderApplicantLevel() {
 				var type = $('#applicant_type').val();
@@ -342,10 +356,13 @@ $applicant_levels = array(
 				});
 				$('#applicant_level').html(html);
 				if (type === 'university') {
+					$('#university_wrap').show();
 					$('#faculty_wrap').show();
 				} else {
+					$('#university_wrap').hide();
+					$('#university_id').val('').removeClass('is-invalid');
 					$('#faculty_wrap').hide();
-					$('#faculty_id').val('').removeClass('is-invalid');
+					renderFaculty();
 				}
 				if (hasLevel) {
 					$('#applicant_level_wrap').show();

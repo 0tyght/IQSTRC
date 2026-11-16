@@ -18,7 +18,21 @@ $applicant_level = normalizeApplicantLevel(
     $_POST['applicant_level'] ?? ''
 );
 $faculty_error = false;
+$university_error = false;
+$submitted_university = $_POST['university_id'] ?? '';
 $submitted_faculty = $_POST['faculty_id'] ?? '';
+if ($applicant_type === 'university' && $submitted_university !== '') {
+    $university_value = filter_var($submitted_university, FILTER_VALIDATE_INT, array('options' => array('min_range' => 1)));
+    if ($university_value === false) {
+        $university_error = true;
+    } else {
+        $university_stmt = $query->connect->prepare('SELECT university_id FROM university WHERE university_id = ? LIMIT 1');
+        $university_stmt->bind_param('i', $university_value);
+        $university_stmt->execute();
+        if (!$university_stmt->get_result()->fetch_assoc()) $university_error = true;
+        else $university_id = (int)$university_value;
+    }
+}
 if ($applicant_type === 'university' && $submitted_faculty !== '') {
     $faculty_value = filter_var($submitted_faculty, FILTER_VALIDATE_INT, array('options' => array('min_range' => 1)));
     if ($faculty_value === false) {
@@ -28,11 +42,10 @@ if ($applicant_type === 'university' && $submitted_faculty !== '') {
         $faculty_stmt->bind_param('i', $faculty_value);
         $faculty_stmt->execute();
         $faculty_row = $faculty_stmt->get_result()->fetch_assoc();
-        if (!$faculty_row) {
+        if (!$faculty_row || !$university_id || (int)$faculty_row['university_id'] !== $university_id) {
             $faculty_error = true;
         } else {
             $faculty_id = (int)$faculty_value;
-            $university_id = (int)$faculty_row['university_id'];
         }
     }
 }
@@ -72,6 +85,12 @@ if (
     echo '<script>$("#applicant_level").removeClass("is-invalid");</script>';
 }
 
+if ($university_error) {
+    echo '<script>$("#university_id").addClass("is-invalid");</script>';
+    echo 'มหาวิทยาลัยที่เลือกไม่ถูกต้อง';
+} else {
+    echo '<script>$("#university_id").removeClass("is-invalid");</script>';
+}
 if ($faculty_error) {
     echo '<script>$("#faculty_id").addClass("is-invalid");</script>';
     echo 'คณะที่เลือกไม่ถูกต้อง กรุณาเลือกคณะจากรายการ';
@@ -83,6 +102,7 @@ if (
     $username != '' &&
     $password != '' &&
     $applicant_type != '' &&
+    !$university_error &&
     !$faculty_error &&
     ($applicant_type == 'general' || $applicant_level != '')
 ) {

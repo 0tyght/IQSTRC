@@ -20,8 +20,8 @@
 
 1. วางโปรเจกต์ไว้ที่ `C:\xampp\htdocs\iqstrc` แล้วเปิด Apache และ MySQL ใน XAMPP
 2. สร้างฐานข้อมูล `iqstrc` ใน phpMyAdmin และเลือกฐานนี้ก่อน Import
-3. สำหรับเครื่องทดสอบ ใช้ `database/iqstrcheal_iqstrc.safe.sql` ซึ่งปกปิดข้อมูลสมาชิกแล้ว หรือใช้ `database/iqstrcheal_iqstrc_schema.sql` เมื่อต้องการเฉพาะโครงสร้าง เลือกอย่างใดอย่างหนึ่งและนำเข้าฐานว่างเท่านั้น ไฟล์โครงสร้างอย่างเดียวจะยังไม่มีบทเรียน สมาชิก หรือบัญชีแอดมิน
-4. หลัง import schema ให้ apply ไฟล์ youth survey migrations ตามลำดับ `20261028_youth_survey.sql`, `20261028_youth_survey_area.sql`, `20261028_youth_survey_respondent.sql`, `20261028_youth_survey_relational.sql` จาก `database/migrations/` (ทำบนฐานทดสอบ/ฐานที่สำรองแล้วเท่านั้น) หากติดตั้งฐานที่มีข้อมูลแบบเก่า ให้ใช้ CLI migration scripts ใน `tools/` ตามคู่มือ deploy ที่ได้รับอนุมัติ เพื่อรักษาคำตอบเดิม
+3. สำหรับฐานว่างที่ต้องการโครงสร้าง P&T ล่าสุด ใช้ `database/pt-hosting-schema-20261116.sql` ซึ่งประกอบด้วย 28 ตารางและ 1 view โดยไม่มีข้อมูลสมาชิก บทเรียน คณะ พื้นที่แบบสำรวจ หรือบัญชีแอดมิน ต้องจัดเตรียมข้อมูลที่จำเป็นแยกต่างหาก ห้ามนำเข้าไฟล์นี้ทับฐานใช้งานจริง
+4. `database/iqstrcheal_iqstrc_schema.sql` และ `database/iqstrcheal_iqstrc.safe.sql` เป็นชุดโครงสร้าง/ข้อมูลตัวอย่างเดิม ส่วน `database/migrations/` เป็น migration ทางเลือกที่เคยสร้างสำหรับฐานเดิม มีรายละเอียดชนิดคอลัมน์และ foreign key ต่างจาก snapshot P&T ไม่ต้องรัน migration เหล่านี้หลังนำเข้า snapshot ล่าสุด และห้ามรันกับฐานจริงโดยไม่ตรวจความเข้ากันได้ก่อน
 5. การย้ายข้อมูลจริงต้องใช้ไฟล์ SQL ฉบับเต็มที่ส่งมอบแยกแบบส่วนตัว ไม่ใช้ไฟล์ `.safe.sql` แทนข้อมูลจริง และต้องย้าย `program/uploads/` มาด้วย
 6. แก้ `$host`, `$db_user`, `$db_password`, `$db_name` ใน `program/admin/indyEngine/dbStructure.php` ให้ตรงกับฐานที่สร้าง ระบบหลักอ่านค่าจากไฟล์นี้ ไม่ใช่จาก `.env`
 7. ให้ PHP เขียน `program/uploads/` และ `program/uploads/images/` ได้ และตั้งค่าที่เก็บ session ให้ใช้งานได้ ไม่ต้องเปิดสิทธิ์ `777`
